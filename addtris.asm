@@ -19,6 +19,12 @@
 
 .data
 
+mesh_char       equ     '*'
+mesh_pos_x      equ     30
+mesh_pos_y      equ     1
+mesh_width      equ     10
+mesh_height     equ     20
+
 txt01   db      'ADDTRIS',13,10,'$'
 
 .code
@@ -26,13 +32,39 @@ txt01   db      'ADDTRIS',13,10,'$'
 start:
         call    clrscr
         
-        mov     dh,00h
-        mov     dl,00h
+        mov     dh,01h
+        mov     dl,01h
         mov     cx,offset txt01
-        call    print_at
+        call    print_text_at
         
+        ;print mesh
+        mov     cx,mesh_pos_y
+        mov     al,mesh_char
+pmesh1:
+        mov     dh,cl
+        mov     dl,mesh_pos_x
+        call    print_char_at
+        mov     dl,mesh_pos_x + mesh_width * 2 
+        call    print_char_at
+        inc     cx
+        cmp     cx,mesh_pos_y + mesh_height + 1
+        jne     pmesh1
+
+        mov     dh,cl
+        mov     cx, mesh_pos_x
+pmesh2:        
+        mov     dl,cl
+        call    print_char_at
+        inc     cx
+        cmp     cx,mesh_pos_x + mesh_width * 2 + 1
+        jne     pmesh2 
+          
+        
+        ;wait a key
         mov     ah,08h  ;read char with no echo
         int     21h
+        
+        call    clrscr
         
         ;return control back to dos
         mov     ah,4ch  ;dos terminate program
@@ -63,12 +95,12 @@ clrscr1:
         ret
         
 ;*********************************
-; Print at
+; Print Text At
 ;*********************************
 ;dh=row
 ;dl=column
 ;cx=text
-print_at:
+print_text_at:
         mov     ah,02h  ;set cursor position
         mov     bh,01h  ;page number
         int     10h
@@ -77,6 +109,23 @@ print_at:
         mov     dx,cx
         int     21h     
 
+        ret
+        
+;*********************************
+; Print Char At
+;*********************************
+;dh=row
+;dl=column
+;al=char
+print_char_at:
+        mov     ah,02h  ;set cursor position
+        mov     bh,01h  ;page number
+        int     10h
+        
+        mov     ah,02h  ;print char
+        mov     dl,al
+        int     21h
+        
         ret        
         
 ;*********************************
