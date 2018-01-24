@@ -26,12 +26,17 @@ mesh_width      equ     10
 mesh_height     equ     20
 
 txt01   db      'ADDTRIS',13,10,'$'
+txt02   db      'GAME OVER',13,10,'$'
+timer   dw      ?
+cur_xy  dw      ?
+cur_ch  db      ?
 
 .code
         org 100h
 start:
         call    clrscr
         
+        ;print addtris
         mov     dh,01h
         mov     dl,01h
         mov     cx,offset txt01
@@ -57,18 +62,79 @@ pmesh2:
         call    print_char_at
         inc     cx
         cmp     cx,mesh_pos_x + mesh_width * 2 + 1
-        jne     pmesh2 
-          
+        jne     pmesh2
         
+        ;set timer
+        mov     ah,00h          ;get system timer
+        int     1ah
+        add     dx,18
+        mov     [timer],dx      ;18.2/sec
+        
+        ;print number
+        mov     dh,mesh_pos_y
+        mov     dl,mesh_pos_x + mesh_width ; * 2 / 2
+        mov     [cur_xy],dx
+        xor     ax,ax 
+        call    get_random      ;random num in al
+        mov     bl,10
+        div     bl              ;modulus in ah
+        mov     al,ah
+        add     al,'0'
+        mov     [cur_ch],al
+go1:
+        mov     dx,[cur_xy]
+        mov     al,[cur_ch]
+        call print_char_at
+        
+        ;wait one sec
+wwait:
+        mov     ah,00h          ;get system timer
+        int     1ah
+        cmp     dx,[timer]
+        jl      wwait
+        add     dx,18
+        mov     [timer],dx      ;18.2/sec
+        
+        ;check if there is empty space
+        mov     dx,[cur_xy]
+        inc     dh
+        mov     ah,02h          ;set cursor position
+        mov     bh,01h          ;page number
+        int     10h
+        
+        mov     ah,08h          ;read al=character and ah=attr
+        mov     bh,01h          ;page number
+        int     10h
+        cmp     al,' '
+        jnz     go2
+        
+        ;delete char
+        mov     dx,[cur_xy]
+        mov     al,' '
+        call print_char_at
+        
+        ;increase position
+        inc     dh
+        mov     [cur_xy],dx
+        
+        jmp     go1
+go2:
+
+        ;print game over
+        mov     dh,12
+        mov     dl,36
+        mov     cx,offset txt02
+        call    print_text_at
+                
         ;wait a key
-        mov     ah,08h  ;read char with no echo
+        mov     ah,08h          ;read char with no echo
         int     21h
         
         call    clrscr
         
         ;return control back to dos
-        mov     ah,4ch  ;dos terminate program
-        mov     al,00h  ;return code will be 0           
+        mov     ah,4ch          ;dos terminate program
+        mov     al,00h          ;return code will be 0           
         int     21h
         
 ;*********************************
@@ -100,7 +166,7 @@ clrscr1:
 ;dh=row
 ;dl=column
 ;cx=text
-print_text_at:
+print_text_at:        
         mov     ah,02h  ;set cursor position
         mov     bh,01h  ;page number
         int     10h
@@ -118,6 +184,10 @@ print_text_at:
 ;dl=column
 ;al=char
 print_char_at:
+        push    ax
+        push    bx
+        push    dx
+        
         mov     ah,02h  ;set cursor position
         mov     bh,01h  ;page number
         int     10h
@@ -125,6 +195,10 @@ print_char_at:
         mov     ah,02h  ;print char
         mov     dl,al
         int     21h
+        
+        pop     dx
+        pop     bx
+        pop     ax
         
         ret        
         
@@ -134,9 +208,10 @@ print_char_at:
  ; get random number and
 ; store it off in al
 get_random:
-        xor     ax, ax
+        push    dx
         mov     dx, 40h
         in      al, dx
+        pop     dx
         
         ret
          
