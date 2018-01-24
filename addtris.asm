@@ -1,5 +1,7 @@
 ;******************************************************************************
 ;       addtris.asm
+;
+;       https://github.com/berk76/addtris
 ;       
 ;       Addtris is free software; you can redistribute it and/or modify
 ;       it under the terms of the GNU General Public License as published by
@@ -32,6 +34,7 @@ timer_d dw      wait_tck
 timer   dw      ?
 cur_xy  dw      ?
 cur_ch  db      ?
+score   dw      ?
 
 .code
         org 100h
@@ -66,6 +69,9 @@ pmesh2:
         cmp     cx,mesh_pos_x + mesh_width * 2 + 1
         jne     pmesh2
         
+        ;reset score
+        mov     [score],0
+        
         ;set timer
         mov     ah,00h          ;get system timer
         int     1ah
@@ -73,6 +79,7 @@ pmesh2:
         
         ;new number
 go2:
+        call    check_score
         mov     [timer_d],wait_tck
         
         mov     dh,mesh_pos_y
@@ -82,9 +89,8 @@ go2:
         call    get_random      ;random num in al
         mov     bl,10
         div     bl              ;modulus in ah
-        mov     al,ah
-        add     al,'0'
-        mov     [cur_ch],al
+        add     ah,'0'
+        mov     [cur_ch],ah
 
         ;check if there is empty space
         mov     dx,[cur_xy]
@@ -95,7 +101,6 @@ go1:
         mov     dx,[cur_xy]
         mov     al,[cur_ch]
         call    print_char_at
-        
         
 wwait:
         ;controls
@@ -147,6 +152,53 @@ go3:
         int     21h
         
 ;*********************************
+; Check score
+;*********************************
+check_score:
+        mov     dx,[cur_xy]
+        
+        inc     dh
+        call    get_char_at
+        cmp     al,'0'
+        jl      check_end
+        cmp     al,'9'
+        jg      check_end
+        mov     ch,al
+        sub     ch,'0'
+        
+        inc     dh
+        call    get_char_at
+        cmp     al,'0'
+        jl      check_end
+        cmp     al,'9'
+        jg      check_end
+        mov     cl,al
+        sub     cl,'0'
+        
+        add     cl,ch
+        xor     ax,ax
+        mov     al,cl
+        mov     bl,10
+        div     bl
+        mov     bl,[cur_ch]
+        sub     bl,'0'
+        cmp     ah,bl
+        jne     check_end
+        
+        mov     al,[cur_ch]
+        call    print_char_at
+        dec     dh
+        mov     al,' '
+        call    print_char_at
+        dec     dh
+        call    print_char_at
+        
+        inc     [score]
+        
+check_end:
+        ret
+
+;*********************************
 ; Controls
 ;*********************************
 controls:
@@ -169,6 +221,8 @@ controls_end:
         ret
 key_up:
         mov     dl,[cur_ch]
+        cmp     dl,'0'
+        je      controls_end
         sub     dl,'0'
         mov     al,10
         sub     al,dl
@@ -292,6 +346,7 @@ print_char_at:
 ;dl=column
 ;al=char
 get_char_at:
+        push    bx
         mov     ah,02h          ;set cursor position
         mov     bh,01h          ;page number
         int     10h
@@ -299,6 +354,7 @@ get_char_at:
         mov     ah,08h          ;read al=character and ah=attr
         mov     bh,01h          ;page number
         int     10h
+        pop     bx
         
         ret        
         
