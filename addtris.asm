@@ -28,8 +28,8 @@ mesh_width      equ     10
 mesh_height     equ     20
 wait_tck        equ     18
 
-txt01   db      'ADDTRIS',13,10,'$'
-txt02   db      'GAME OVER',13,10,'$'
+txt01   db      'ADDTRIS','$'
+txt02   db      'GAME OVER','$'
 timer_d dw      wait_tck
 timer   dw      ?
 cur_xy  dw      ?
@@ -79,7 +79,6 @@ pmesh2:
         
         ;new number
 go2:
-        call    check_score
         mov     [timer_d],wait_tck
         
         mov     dh,mesh_pos_y
@@ -120,8 +119,8 @@ wwait:
         inc     dh
         call    get_char_at
         cmp     al,' '
-        jnz     go2
-        
+        jne     go4
+                
         ;delete char
         mov     dx,[cur_xy]
         mov     al,' '
@@ -132,6 +131,9 @@ wwait:
         mov     [cur_xy],dx
         
         jmp     go1
+go4:
+        call    check_score
+        jmp     go2
 go3:
 
         ;print game over
