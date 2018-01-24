@@ -24,9 +24,11 @@ mesh_pos_x      equ     30
 mesh_pos_y      equ     1
 mesh_width      equ     10
 mesh_height     equ     20
+wait_tck        equ     18
 
 txt01   db      'ADDTRIS',13,10,'$'
 txt02   db      'GAME OVER',13,10,'$'
+timer_d dw      wait_tck
 timer   dw      ?
 cur_xy  dw      ?
 cur_ch  db      ?
@@ -67,10 +69,12 @@ pmesh2:
         ;set timer
         mov     ah,00h          ;get system timer
         int     1ah
-        add     dx,18
         mov     [timer],dx      ;18.2/sec
         
-        ;print number
+        ;new number
+go2:
+        mov     [timer_d],wait_tck
+        
         mov     dh,mesh_pos_y
         mov     dl,mesh_pos_x + mesh_width ; * 2 / 2
         mov     [cur_xy],dx
@@ -81,30 +85,35 @@ pmesh2:
         mov     al,ah
         add     al,'0'
         mov     [cur_ch],al
+
+        ;check if there is empty space
+        mov     dx,[cur_xy]
+        call    get_char_at
+        cmp     al,' '
+        jnz     go3
 go1:
         mov     dx,[cur_xy]
         mov     al,[cur_ch]
-        call print_char_at
+        call    print_char_at
         
-        ;wait one sec
+        
 wwait:
+        ;controls
+        call    controls
+        
+        ;wait
         mov     ah,00h          ;get system timer
         int     1ah
-        cmp     dx,[timer]
+        mov     ax,[timer]
+        add     ax,[timer_d]
+        cmp     dx,ax
         jl      wwait
-        add     dx,18
         mov     [timer],dx      ;18.2/sec
         
         ;check if there is empty space
         mov     dx,[cur_xy]
         inc     dh
-        mov     ah,02h          ;set cursor position
-        mov     bh,01h          ;page number
-        int     10h
-        
-        mov     ah,08h          ;read al=character and ah=attr
-        mov     bh,01h          ;page number
-        int     10h
+        call    get_char_at
         cmp     al,' '
         jnz     go2
         
@@ -118,7 +127,7 @@ wwait:
         mov     [cur_xy],dx
         
         jmp     go1
-go2:
+go3:
 
         ;print game over
         mov     dh,12
@@ -137,6 +146,80 @@ go2:
         mov     al,00h          ;return code will be 0           
         int     21h
         
+;*********************************
+; Controls
+;*********************************
+controls:
+        mov     ah,0bh          ;key pressed
+        int     21h
+        cmp     al,0
+        je     controls_end
+
+        mov     ah,00h          ;read keyboard
+        int     16h             ;ah = bios scan code
+        cmp     ah,48h
+        je      key_up
+        cmp     ah,4bh
+        je      key_left
+        cmp     ah,4dh
+        je      key_right
+        cmp     ah,50h
+        je      key_down
+controls_end:
+        ret
+key_up:
+        mov     dl,[cur_ch]
+        sub     dl,'0'
+        mov     al,10
+        sub     al,dl
+        add     al,'0'
+        mov     [cur_ch],al
+        ;print char
+        mov     dx,[cur_xy]
+        call    print_char_at
+        ret
+key_left:
+        ;check if there is empty space
+        mov     dx,[cur_xy]
+        dec     dl
+        dec     dl
+        call    get_char_at
+        cmp     al,' '
+        jnz     controls_end
+        ;delete char
+        mov     dx,[cur_xy]
+        mov     al,' '
+        call print_char_at
+        ;print char
+        dec     dl
+        dec     dl
+        mov     [cur_xy],dx
+        mov     al,[cur_ch]
+        call    print_char_at
+        ret
+key_right:
+        ;check if there is empty space
+        mov     dx,[cur_xy]
+        inc     dl
+        inc     dl
+        call    get_char_at
+        cmp     al,' '
+        jnz     controls_end
+        ;delete char
+        mov     dx,[cur_xy]
+        mov     al,' '
+        call print_char_at
+        ;print char
+        inc     dl
+        inc     dl
+        mov     [cur_xy],dx
+        mov     al,[cur_ch]
+        call    print_char_at
+        ret
+key_down:
+        mov     [timer_d],1
+        ret
+
 ;*********************************
 ; Clear Screen
 ;*********************************
@@ -199,6 +282,23 @@ print_char_at:
         pop     dx
         pop     bx
         pop     ax
+        
+        ret
+        
+;*********************************
+; Get Character From Position
+;*********************************
+;dh=row
+;dl=column
+;al=char
+get_char_at:
+        mov     ah,02h          ;set cursor position
+        mov     bh,01h          ;page number
+        int     10h
+        
+        mov     ah,08h          ;read al=character and ah=attr
+        mov     bh,01h          ;page number
+        int     10h
         
         ret        
         
