@@ -31,6 +31,11 @@ wait_tck        equ     18
 txt01   db      'ADDTRIS','$'
 txt02   db      'GAME OVER','$'
 txt03   db      'Score: ','$'
+txt04   db      'Press a key...','$'
+txt05   db      '              ','$'
+txt06   db      'Controls:','$'
+txt07   db      'Navig. ... arrows','$'
+txt08   db      'Quit ..... q','$'
 timer_d dw      wait_tck
 timer   dw      ?
 cur_xy  dw      ?
@@ -48,6 +53,21 @@ start:
         mov     dh,01h
         mov     dl,01h
         mov     cx,offset txt01
+        call    print_text_at
+        
+        mov     dh,07h
+        mov     dl,01h
+        mov     cx,offset txt06
+        call    print_text_at
+        
+        mov     dh,08h
+        mov     dl,01h
+        mov     cx,offset txt07
+        call    print_text_at
+        
+        mov     dh,09h
+        mov     dl,01h
+        mov     cx,offset txt08
         call    print_text_at
         
         ;print mesh
@@ -75,6 +95,22 @@ pmesh2:
         ;reset score
         mov     [score],0
         call    print_score
+        
+        ;press a key
+        mov     dh,12
+        mov     dl,34
+        mov     cx,offset txt04
+        call    print_text_at
+        
+        ;wait a key
+        mov     ah,08h          ;read char with no echo
+        int     21h
+        
+        ;delete message
+        mov     dh,12
+        mov     dl,34
+        mov     cx,offset txt05
+        call    print_text_at
         
         ;set timer
         mov     ah,00h          ;get system timer
