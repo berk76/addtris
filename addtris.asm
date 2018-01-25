@@ -427,8 +427,10 @@ get_char_at:
 ; store it off in al
 get_random:
         push    dx
-        mov     dx, 40h
-        in      al, dx
+        mov     dx,40h
+        in      al,dx
+        mov     dx,[timer]
+        xor     al,dl
         pop     dx
         
         ret
