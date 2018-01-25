@@ -36,10 +36,12 @@ timer   dw      ?
 cur_xy  dw      ?
 cur_ch  db      ?
 score   dw      ?
+cursor  dw      ?
 
 .code
         org 100h
 start:
+        call    hide_cursor
         call    clrscr
         
         ;print addtris
@@ -160,6 +162,7 @@ go3:
 
 addtris_end:        
         call    clrscr
+        call    show_cursor
         
         ;return control back to dos
         mov     ah,4ch          ;dos terminate program
@@ -431,6 +434,30 @@ print_div:
         pop     ax
         jmp     print_loop
 print_end:        
+        ret
+        
+;*********************************
+; Hide cursor
+;*********************************
+hide_cursor:
+        mov     ah,03h          ;get cursor position and shape
+        int     10h
+        mov     [cursor],cx     ;save start and end of scan line
+        
+        mov     ah,01h          ;set cursor shape
+        mov     ch,20h
+        int     10h
+        
+        ret
+
+;*********************************
+; Show cursor
+;*********************************
+show_cursor:
+        mov     ah,01h          ;set cursor shape
+        mov     cx,[cursor]
+        int     10h
+        
         ret
         
         end start
