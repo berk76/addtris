@@ -105,8 +105,18 @@ go1:
         
 wwait:
         ;controls
+        mov     ah,01h
+        int     16h             ;ah = bios scan code, al = ascii
+        jz     wwait1           ;no key pressed
+        
+        mov     ah,00h          ;remove keystroke from buffer
+        int     16h             ;ah = bios scan code, al = ascii
+
+        cmp     al,'q'
+        je      addtris_end
         call    controls
         
+wwait1:        
         ;wait
         mov     ah,00h          ;get system timer
         int     1ah
@@ -147,7 +157,8 @@ go3:
         ;wait a key
         mov     ah,08h          ;read char with no echo
         int     21h
-        
+
+addtris_end:        
         call    clrscr
         
         ;return control back to dos
@@ -221,13 +232,6 @@ print_score:
 ; Controls
 ;*********************************
 controls:
-        mov     ah,0bh          ;key pressed
-        int     21h
-        cmp     al,0
-        je     controls_end
-
-        mov     ah,00h          ;read keyboard
-        int     16h             ;ah = bios scan code
         cmp     ah,48h
         je      key_up
         cmp     ah,4bh
