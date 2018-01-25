@@ -30,6 +30,7 @@ wait_tck        equ     18
 
 txt01   db      'ADDTRIS','$'
 txt02   db      'GAME OVER','$'
+txt03   db      'Score: ','$'
 timer_d dw      wait_tck
 timer   dw      ?
 cur_xy  dw      ?
@@ -71,6 +72,7 @@ pmesh2:
         
         ;reset score
         mov     [score],0
+        call    print_score
         
         ;set timer
         mov     ah,00h          ;get system timer
@@ -196,8 +198,23 @@ check_score:
         call    print_char_at
         
         inc     [score]
+        call    print_score
         
 check_end:
+        ret
+        
+;*********************************
+; Print score
+;*********************************
+print_score:
+        mov     dh,03h
+        mov     dl,01h
+        mov     cx,offset txt03
+        call    print_text_at
+        
+        mov     ax,[score]
+        call print_num_d
+        
         ret
 
 ;*********************************
