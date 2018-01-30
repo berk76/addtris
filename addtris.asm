@@ -103,8 +103,8 @@ pmesh2:
         call    print_text_at
         
         ;wait a key
-        mov     ah,08h          ;read char with no echo
-        int     21h
+        mov     ah,00h          ;remove keystroke from buffer
+        int     16h             ;ah = bios scan code, al = ascii
         
         ;delete message
         mov     dh,12
@@ -193,8 +193,8 @@ go3:
         call    print_text_at
                 
         ;wait a key
-        mov     ah,08h          ;read char with no echo
-        int     21h
+        mov     ah,00h          ;remove keystroke from buffer
+        int     16h             ;ah = bios scan code, al = ascii
 
 addtris_end:        
         call    clrscr
