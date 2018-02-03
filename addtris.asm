@@ -21,6 +21,7 @@
 
 .data
 
+dsp_page        equ     00h
 mesh_char       equ     '*'
 mesh_pos_x      equ     30
 mesh_pos_y      equ     1
@@ -351,14 +352,14 @@ key_down:
 ; Clear Screen
 ;*********************************
 clrscr:
-        mov     ah,05h  ;select active display page
-        mov     al,01h
+        mov     ah,05h          ;select active display page
+        mov     al,dsp_page
         int     10h
 
-        mov     ah,02h  ;set cursor position
-        mov     bh,01h  ;page number
-        mov     dh,00h  ;row
-        mov     dl,00h  ;column
+        mov     ah,02h          ;set cursor position
+        mov     bh,dsp_page     ;page number
+        mov     dh,00h          ;row
+        mov     dl,00h          ;column
         int     10h
         
         mov     cx,80*25
@@ -377,11 +378,11 @@ clrscr1:
 ;dl=column
 ;cx=text
 print_text_at:        
-        mov     ah,02h  ;set cursor position
-        mov     bh,01h  ;page number
+        mov     ah,02h          ;set cursor position
+        mov     bh,dsp_page     ;page number
         int     10h
         
-        mov     ah,09h  ;print text
+        mov     ah,09h          ;print text
         mov     dx,cx
         int     21h     
 
@@ -397,15 +398,19 @@ print_char_at:
         push    ax
         push    bx
         push    dx
+        push    cx
         
-        mov     ah,02h  ;set cursor position
-        mov     bh,01h  ;page number
+        mov     cx,ax
+        
+        mov     ah,02h          ;set cursor position
+        mov     bh,dsp_page     ;page number
         int     10h
         
-        mov     ah,02h  ;print char
-        mov     dl,al
+        mov     ah,02h          ;print char
+        mov     dl,cl
         int     21h
         
+        pop     cx
         pop     dx
         pop     bx
         pop     ax
@@ -421,11 +426,11 @@ print_char_at:
 get_char_at:
         push    bx
         mov     ah,02h          ;set cursor position
-        mov     bh,01h          ;page number
+        mov     bh,dsp_page     ;page number
         int     10h
         
         mov     ah,08h          ;read al=character and ah=attr
-        mov     bh,01h          ;page number
+        mov     bh,dsp_page     ;page number
         int     10h
         pop     bx
         
