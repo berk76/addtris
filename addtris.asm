@@ -157,7 +157,8 @@ wwait:
 wwait1:        
         ;wait
         mov     ah,00h          ;get system timer
-        int     1ah
+        int     1ah             ;al 0 if timer has not overflowed past 24 hrs
+                                ;cx,dx ticks from last reset cx is high, dx low
         mov     ax,[timer]
         add     ax,[timer_d]
         cmp     dx,ax
