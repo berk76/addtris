@@ -37,7 +37,8 @@ txt06   db      'Controls:','$'
 txt07   db      'Navig. ... arrows','$'
 txt08   db      'Quit ..... q','$'
 timer_d dw      wait_tck
-timer   dw      ?
+timer_l dw      ?
+timer_h dw      ?
 cur_xy  dw      ?
 cur_ch  db      ?
 score   dw      ?
@@ -113,9 +114,11 @@ pmesh2:
         call    print_text_at
         
         ;set timer
-        mov     ah,00h          ;get system timer
-        int     1ah
-        mov     [timer],dx      ;18.2/sec
+        mov     ah,00h          ;get system timer - 18.2/sec
+        int     1ah             ;al 0 if timer has not overflowed past 24 hrs
+                                ;cx,dx ticks from last reset cx is high, dx low
+        mov     [timer_l],dx    ;dx is low
+        mov     [timer_h],cx    ;cx is high
         
         ;new number
 go2:
@@ -159,11 +162,18 @@ wwait1:
         mov     ah,00h          ;get system timer
         int     1ah             ;al 0 if timer has not overflowed past 24 hrs
                                 ;cx,dx ticks from last reset cx is high, dx low
-        mov     ax,[timer]
+        mov     ax,[timer_l]
+        mov     bx,[timer_h]
         add     ax,[timer_d]
+        jnc     wwait2
+        inc     bx
+wwait2:
+        cmp     cx,bx
+        jl      wwait     
         cmp     dx,ax
         jl      wwait
-        mov     [timer],dx      ;18.2/sec
+        mov     [timer_l],dx    ;system timer low word
+        mov     [timer_h],cx    ;system timer high word
         
         ;check if there is empty space
         mov     dx,[cur_xy]
@@ -430,7 +440,7 @@ get_random:
         push    dx
         mov     dx,40h
         in      al,dx
-        mov     dx,[timer]
+        mov     dx,[timer_l]
         xor     al,dl
         pop     dx
         
