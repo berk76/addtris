@@ -17,7 +17,7 @@
 ;
 ;******************************************************************************
 
-.model tiny        
+.model tiny
 
 .data
 
@@ -28,6 +28,20 @@ mesh_pos_y      equ     1
 mesh_width      equ     10
 mesh_height     equ     20
 wait_tck        equ     18
+
+note_C          equ     4554
+note_Cs         equ     4308
+note_D          equ     4058
+note_Ds         equ     3837
+note_E          equ     3616
+note_F          equ     3419
+note_Fs         equ     3225
+note_G          equ     3044
+note_Gs         equ     2875
+note_A          equ     2712
+note_As         equ     2560
+note_B          equ     2415
+
 
 txt01   db      'ADDTRIS','$'
 txt02   db      'GAME OVER','$'
@@ -50,6 +64,8 @@ cursor  dw      ?
 start:
         call    hide_cursor
         call    clrscr
+        mov     bx,note_C
+        call    sound_set_note
         
         ;print addtris
         mov     dh,01h
@@ -144,6 +160,13 @@ go1:
         mov     dx,[cur_xy]
         mov     al,[cur_ch]
         call    print_char_at
+        
+        ;play_sound
+        mov     ax,[timer_d]
+        cmp     ax,wait_tck
+        jne     wwait
+        mov     si,1            ;length of sound in ticks 
+        call    play_sound
         
 wwait:
         ;controls
@@ -261,6 +284,8 @@ check_score:
         
         inc     [score]
         call    print_score
+        mov     si,2            ;length of sound in ticks 
+        call    play_sound
         
 check_end:
         ret
@@ -513,5 +538,105 @@ show_cursor:
         int     10h
         
         ret
+        
+;*********************************
+; Play sound
+;*********************************
+;
+; We will setup particular countdouwn at timer 2 in order to produce
+; specific frequency
+;
+;               1193180 
+; COUNTDOWN = ---------
+;             FREQUENCY
+;
+;
+;  TABLE OF MUSICAL NOTE FREQUENCIES (Hz)
+; ======================================
+; Octave 0    1    2    3    4    5    6    7
+; Note
+; C     16   33   65  131  262  523 1046 2093
+; C#    17   35   69  139  277  554 1109 2217
+; D     18   37   73  147  294  587 1175 2349
+; D#    19   39   78  155  311  622 1244 2489
+; E     21   41   82  165  330  659 1328 2637
+; F     22   44   87  175  349  698 1397 2794
+; F#    23   46   92  185  370  740 1480 2960
+; G     24   49   98  196  392  784 1568 3136
+; G#    26   52  104  208  415  831 1661 3322
+; A     27   55  110  220  440  880 1760 3520
+; A#    29   58  116  233  466  932 1865 3729
+; B     31   62  123  245  494  988 1975 3951
+;
+; First we have to tell timer 2 that we're about to load a new countdown value
+; OUT 43h, B6h
+;
+; For example, if our low and high bytes are 54 and 124 then we do:
+; OUT 42h, 54
+; OUT 42h, 124
+;
+; Then we have to connect speaker to timer 2.
+; To do this, we must set bits 0 and 1 of the value on port 61h on (or off).
+; VALUE = IN( 61h )
+; VALUE = VALUE OR 3      (Turn on bits 1 and 2)
+; OUT 61h, VALUE
+
+sound_set_note:
+        ;bx = note countdown
+        mov     dx,43h
+        mov     al,0b6h
+        out     dx,al           ;want to load new value to timer 2
+        
+        mov     dx,42h
+        mov     al,bl
+        out     dx,al           ;load low value of countdown
+        mov     al,bh
+        out     dx,al           ;load high value of countdown
+        
+        ret
+        
+play_sound:
+        ;si = num of ticks
+        push    dx
+        push    ax
+        push    cx
+        push    bx
+                
+        ;set speaker on
+        mov     dx,61h
+        in      al,dx
+        or      al,3            ;set bits 0 and 1 on
+        out     dx,al           ;connect speaker to timer 2
+        
+        ;read timer
+play_sound_2:
+        mov     ah,00h          ;get system timer - 18.2/sec
+        int     1ah             ;al 0 if timer has not overflowed past 24 hrs
+                                ;cx,dx ticks from last reset cx is high, dx low
+        mov     bx,dx
+        
+        ;wait one tick
+play_sound_1:
+        mov     ah,00h          ;get system timer - 18.2/sec
+        int     1ah             ;al 0 if timer has not overflowed past 24 hrs
+                                ;cx,dx ticks from last reset cx is high, dx low
+        cmp     bx,dx
+        je      play_sound_1
+        
+        dec     si
+        jnz     play_sound_2
+        
+        ;set speaker off
+        mov     dx,61h
+        in      al,dx
+        and     al,252          ;set bits 0 and 1 off
+        out     dx,al           ;disconnect speaker to timer 2
+        
+        pop     bx
+        pop     cx
+        pop     ax
+        pop     dx
+        
+        ret   
         
         end start
