@@ -52,6 +52,8 @@ txt06   db      'Controls:','$'
 txt07   db      'Navig. ... arrows','$'
 txt08   db      'Quit ..... q','$'
 snd01   dw      note_C, 3, note_D, 3, note_E, 3, note_F, 3, note_G, 4, 0, 0
+snd02   dw      note_G, 3, note_F, 3, note_E, 3, note_D, 3, note_C, 4, 0, 0
+snd03   dw      note_F, 2, note_G, 2, 0, 0
 timer_d dw      wait_tck
 timer_l dw      ?
 timer_h dw      ?
@@ -132,7 +134,7 @@ pmesh2:
         mov     dl,34
         mov     cx,offset txt05
         call    print_text_at
-        
+go2:        
         ;set timer
         mov     ah,00h          ;get system timer - 18.2/sec
         int     1ah             ;al 0 if timer has not overflowed past 24 hrs
@@ -141,7 +143,6 @@ pmesh2:
         mov     [timer_h],cx    ;cx is high
         
         ;new number
-go2:
         mov     [timer_d],wait_tck
         
         mov     dh,mesh_pos_y
@@ -226,7 +227,10 @@ go4:
         call    check_score
         jmp     go2
 go3:
-
+        ;play song
+        mov     si,offset snd02
+        call    play_song
+        
         ;print game over
         mov     dh,12
         mov     dl,36
@@ -291,10 +295,13 @@ check_score:
         inc     [score]
         call    print_score
         
-        mov     bx,note_C       ;set note
-        call    set_note
-        mov     di,2            ;length of sound in ticks 
-        call    play_note
+        ;play song
+        mov     si,offset snd03
+        call    play_song
+        
+        ;wait
+        mov     ax,2            ;wait 2 ticks
+        call    wait_tcks
         
 check_end:
         ret
