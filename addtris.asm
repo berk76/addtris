@@ -51,6 +51,7 @@ txt05   db      '              ','$'
 txt06   db      'Controls:','$'
 txt07   db      'Navig. ... arrows','$'
 txt08   db      'Quit ..... q','$'
+snd01   dw      note_C, 3, note_D, 3, note_E, 3, note_F, 3, note_G, 4, 0, 0
 timer_d dw      wait_tck
 timer_l dw      ?
 timer_h dw      ?
@@ -64,8 +65,6 @@ cursor  dw      ?
 start:
         call    hide_cursor
         call    clrscr
-        mov     bx,note_C
-        call    sound_set_note
         
         ;print addtris
         mov     dh,01h
@@ -113,6 +112,10 @@ pmesh2:
         ;reset score
         mov     [score],0
         call    print_score
+
+        ;play song
+        mov     si,offset snd01
+        call    play_song    
         
         ;press a key
         mov     dh,12
@@ -165,7 +168,10 @@ go1:
         mov     ax,[timer_d]
         cmp     ax,wait_tck
         jne     wwait
-        mov     si,1            ;length of sound in ticks 
+        
+        mov     bx,note_C       ;set note
+        call    sound_set_note
+        mov     di,1            ;length of sound in ticks 
         call    play_sound
         
 wwait:
@@ -284,7 +290,10 @@ check_score:
         
         inc     [score]
         call    print_score
-        mov     si,2            ;length of sound in ticks 
+        
+        mov     bx,note_C       ;set note
+        call    sound_set_note
+        mov     di,2            ;length of sound in ticks 
         call    play_sound
         
 check_end:
@@ -540,6 +549,43 @@ show_cursor:
         ret
         
 ;*********************************
+; Wait ticks
+;*********************************
+wait_tcks:
+        ;ax = wait ticks
+        push    bx
+        push    cx
+        push    dx
+        push    si
+        
+        mov     si,ax
+        
+        ;read timer
+wait_tcks_2:
+        mov     ah,00h          ;get system timer - 18.2/sec
+        int     1ah             ;al 0 if timer has not overflowed past 24 hrs
+                                ;cx,dx ticks from last reset cx is high, dx low
+        mov     bx,dx
+        
+        ;wait one tick
+wait_tcks_1:
+        mov     ah,00h          ;get system timer - 18.2/sec
+        int     1ah             ;al 0 if timer has not overflowed past 24 hrs
+                                ;cx,dx ticks from last reset cx is high, dx low
+        cmp     bx,dx
+        je      wait_tcks_1
+        
+        dec     si
+        jnz     wait_tcks_2
+        
+        pop     si
+        pop     dx
+        pop     cx
+        pop     bx
+                
+        ret
+        
+;*********************************
 ; Play sound
 ;*********************************
 ;
@@ -583,6 +629,9 @@ show_cursor:
 
 sound_set_note:
         ;bx = note countdown
+        push    dx
+        push    ax
+        
         mov     dx,43h
         mov     al,0b6h
         out     dx,al           ;want to load new value to timer 2
@@ -593,10 +642,13 @@ sound_set_note:
         mov     al,bh
         out     dx,al           ;load high value of countdown
         
+        pop     ax
+        pop     dx
+        
         ret
         
 play_sound:
-        ;si = num of ticks
+        ;di = num of ticks
         push    dx
         push    ax
         push    cx
@@ -608,23 +660,9 @@ play_sound:
         or      al,3            ;set bits 0 and 1 on
         out     dx,al           ;connect speaker to timer 2
         
-        ;read timer
-play_sound_2:
-        mov     ah,00h          ;get system timer - 18.2/sec
-        int     1ah             ;al 0 if timer has not overflowed past 24 hrs
-                                ;cx,dx ticks from last reset cx is high, dx low
-        mov     bx,dx
-        
-        ;wait one tick
-play_sound_1:
-        mov     ah,00h          ;get system timer - 18.2/sec
-        int     1ah             ;al 0 if timer has not overflowed past 24 hrs
-                                ;cx,dx ticks from last reset cx is high, dx low
-        cmp     bx,dx
-        je      play_sound_1
-        
-        dec     si
-        jnz     play_sound_2
+        ;wait n ticks
+        mov     ax,di
+        call    wait_tcks
         
         ;set speaker off
         mov     dx,61h
@@ -637,6 +675,25 @@ play_sound_1:
         pop     ax
         pop     dx
         
-        ret   
+        ret
+        
+play_song:
+        ;si = offset song
+        mov     bx,[si]         ;load note
+        
+        or      bx,0
+        jz      play_song_1     ;end of song
+        call    sound_set_note
+        inc     si
+        inc     si
+        
+        mov     di,[si]         ;load wait ticks
+        call    play_sound
+        inc     si
+        inc     si
+        jmp     play_song
+        
+play_song_1:        
+        ret        
         
         end start
