@@ -165,11 +165,16 @@ go1:
         mov     al,[cur_ch]
         call    print_char_at
         
-        ;play_sound
+        ;should play note?
         mov     ax,[timer_d]
         cmp     ax,wait_tck
         jne     wwait
         
+        ;wait for synchronization
+        mov     ax,1            ;wait 1 tick
+        call    wait_tcks
+        
+        ;play_note
         mov     bx,note_C       ;set note
         call    set_note
         mov     di,1            ;length of sound in ticks 
