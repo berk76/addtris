@@ -170,9 +170,9 @@ go1:
         jne     wwait
         
         mov     bx,note_C       ;set note
-        call    sound_set_note
+        call    set_note
         mov     di,1            ;length of sound in ticks 
-        call    play_sound
+        call    play_note
         
 wwait:
         ;controls
@@ -292,9 +292,9 @@ check_score:
         call    print_score
         
         mov     bx,note_C       ;set note
-        call    sound_set_note
+        call    set_note
         mov     di,2            ;length of sound in ticks 
-        call    play_sound
+        call    play_note
         
 check_end:
         ret
@@ -586,7 +586,7 @@ wait_tcks_1:
         ret
         
 ;*********************************
-; Play sound
+; Speaker
 ;*********************************
 ;
 ; We will setup particular countdouwn at timer 2 in order to produce
@@ -627,7 +627,11 @@ wait_tcks_1:
 ; VALUE = VALUE OR 3      (Turn on bits 1 and 2)
 ; OUT 61h, VALUE
 
-sound_set_note:
+
+;*********************************
+; Set note
+;*********************************
+set_note:
         ;bx = note countdown
         push    dx
         push    ax
@@ -647,7 +651,10 @@ sound_set_note:
         
         ret
         
-play_sound:
+;*********************************
+; Play note
+;*********************************
+play_note:
         ;di = num of ticks
         push    dx
         push    ax
@@ -676,19 +683,22 @@ play_sound:
         pop     dx
         
         ret
-        
+
+;*********************************
+; Play song
+;*********************************        
 play_song:
         ;si = offset song
         mov     bx,[si]         ;load note
         
         or      bx,0
         jz      play_song_1     ;end of song
-        call    sound_set_note
+        call    set_note
         inc     si
         inc     si
         
         mov     di,[si]         ;load wait ticks
-        call    play_sound
+        call    play_note
         inc     si
         inc     si
         jmp     play_song
