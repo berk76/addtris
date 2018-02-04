@@ -408,15 +408,15 @@ clrscr:
         mov     dl,00h          ;column
         int     10h
         
-        mov     cx,80*25
-clrscr1:
-        mov     ah,02h
-        mov     dl,' '
-        int     21h
-        loop    clrscr1
-        
+        mov     ah,09h          ;write char and attribute at cursor position
+        mov     al,' '          ;character
+        mov     bh,dsp_page     ;page number
+        mov     bl,00000111b    ;attribute
+        mov     cx,80*25        ;count of characters
+        int     10h
+
         ret
-        
+
 ;*********************************
 ; Print Text At
 ;*********************************
