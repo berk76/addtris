@@ -51,7 +51,8 @@ txt04   db      'Press a key...','$'
 txt05   db      '              ','$'
 txt06   db      'Controls:','$'
 txt07   db      'Navig. ... arrows','$'
-txt08   db      'Quit ..... q','$'
+txt08   db      'Sound .... s','$'
+txt09   db      'Quit ..... q','$'
 snd01   dw      note_C, 3, note_D, 3, note_E, 3, note_F, 3, note_G, 4, 0, 0
 snd02   dw      note_G, 3, note_F, 3, note_E, 3, note_D, 3, note_C, 4, 0, 0
 snd03   dw      note_F, 2, note_G, 2, 0, 0
@@ -62,6 +63,7 @@ cur_xy  dw      ?
 cur_ch  db      ?
 score   dw      ?
 cursor  dw      ?
+sound   db      1
 
 .code
         org 100h
@@ -88,6 +90,11 @@ start:
         mov     dh,09h
         mov     dl,01h
         mov     cx,offset txt08
+        call    print_text_at
+        
+        mov     dh,0ah
+        mov     dl,01h
+        mov     cx,offset txt09
         call    print_text_at
         
         ;print mesh
@@ -161,6 +168,7 @@ go2:
         call    get_char_at
         cmp     al,' '
         jnz     go3
+
 go1:
         mov     dx,[cur_xy]
         mov     al,[cur_ch]
@@ -338,6 +346,8 @@ controls:
         je      key_right
         cmp     ah,50h
         je      key_down
+        cmp     al,'s'
+        je      key_snd
 controls_end:
         ret
 key_up:
@@ -393,6 +403,9 @@ key_right:
         ret
 key_down:
         mov     [timer_d],1
+        ret
+key_snd:
+        xor     [sound],1
         ret
 
 ;*********************************
@@ -673,6 +686,10 @@ play_note:
         push    ax
         push    cx
         push    bx
+        
+        mov     al,[sound]
+        and     al,1
+        jz      play_note_end
                 
         ;set speaker on
         mov     dx,61h
@@ -690,6 +707,7 @@ play_note:
         and     al,252          ;set bits 0 and 1 off
         out     dx,al           ;disconnect speaker to timer 2
         
+play_note_end:
         pop     bx
         pop     cx
         pop     ax
