@@ -687,8 +687,7 @@ play_note:
         push    cx
         push    bx
         
-        mov     al,[sound]
-        and     al,1
+        test    [sound],1
         jz      play_note_end
                 
         ;set speaker on
